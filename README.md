@@ -10,8 +10,8 @@
 - `query(interval)`: reports the sum of `range`
 
 [Union-find tree](https://github.com/rsk0315/Library/blob/master/DataStructure/UnionFindTree.cpp)
-- `update(node-pair)`: unites `node-pair`
-- `query(node-pair)`: reports whether a path exists between `node-pair` 
+- `unite(node-pair)`: unites `node-pair`
+- `connected(node-pair)`: reports whether a path exists between `node-pair` 
 - `rank(node)`: reports the size of the connected components which contains `node`
 
 ### Complexity
@@ -23,4 +23,7 @@
 | :-------------- | :-------- | :-------- |
 | Starry-sky tree | O(log(N)) | O(1)      |
 | Fenwick tree    | O(log(N)) | O(log(N)) |
-| Union-find tree | *O(a(N))* | *O(a(N))* |
+
+| Structure name  | unite     | connected | rank      |
+| :-------------- | :-------- | :-------- | :-------- |
+| Union-find tree | *O(a(N))* | *O(a(N))* | *O(a(N))* |
