@@ -1,8 +1,8 @@
 template <class Weight, Weight INF>
-struct FlowNetworkWithNodeCap: public FlowNetwork<Weight, INF> {
+struct FlowNetworkNodeCap: public FlowNetwork<Weight, INF> {
     size_t V;
-    FlowNetworkWithNodeCap() {}
-    FlowNetworkWithNodeCap(size_t V): FlowNetwork<Weight, INF>(V<<1), V(V) {
+    FlowNetworkNodeCap() {}
+    FlowNetworkNodeCap(size_t V): FlowNetwork<Weight, INF>(V<<1), V(V) {
         // (vin[i], vout[i]): (i, V+i)
         for (size_t i=0; i<V; ++i) {
             (*this)[V+i].push_back(Arc<Weight>(V+i, i, INF, 0));
