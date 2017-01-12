@@ -1,3 +1,5 @@
+using Weight=int;
+
 template <class Weight>
 struct Arc {
     size_t src, dst;
@@ -24,11 +26,13 @@ using Arcs=vector<Arc<Weight>>;
 template <class Weight>
 using Node=vector<Arc<Weight>>;
 
-template <class Weight>
+template <class Weight, Weight INF>
 struct FlowNetwork: public vector<Node<Weight>> {
     bool sent_flow;
-    FlowNetwork(): sent_flow(false) {}
-    FlowNetwork(size_t V): vector<Node<Weight>>(V), sent_flow(false) {}
+    Weight inf;
+    FlowNetwork(): sent_flow(false), inf(INF) {}
+    FlowNetwork(size_t V): vector<Node<Weight>>(V), sent_flow(false), inf(INF)
+    {}
     void join(size_t src, size_t dst, Weight cap=1, Weight cost=1) {
         (*this)[src].push_back(Arc<Weight>(src, dst, cap, cost));
         (*this)[dst].push_back(Arc<Weight>(dst, src, cap, cost));
@@ -55,5 +59,64 @@ struct FlowNetwork: public vector<Node<Weight>> {
                 e.flow = 0;
 
         sent_flow = false;
+    }
+    pair<Weight, Weight> send(
+        size_t source, size_t sink, Weight bound=INF
+    ) {
+        /* Primal-Dual */
+        // sends legal flow at most bound
+        // returns its amount and minimum cost
+        if (sent_flow)
+            reset_flow();
+
+        size_t V=this->size();
+        vector<Weight> pot(V);
+
+        Weight flow=0, mincost=0;
+        while (bound > flow) {
+            // shortest path from source to sink with available capacity
+            vector<Weight> d(V, INF); d[source]=0;
+            vector<Arc<Weight> *> prev(V, NULL);
+            lp_queue<pair<Weight, size_t>> q; q.push(make_pair(0, source));
+            while (!q.empty()) {
+                pair<Weight, size_t> p=q.top(); q.pop();
+                size_t v=p.second;
+                if (d[v] < p.first) continue;
+
+                for (Arc<Weight> &e: (*this)[v]) {
+                    if (e.residue() <= 0) continue;
+
+                    Weight new_d=d[e.src]+e.cost+pot[e.src]-pot[e.dst];
+                    if (d[e.dst] > new_d) {
+                        d[e.dst] = new_d;
+                        prev[e.dst] = &e;
+                        q.push(make_pair(d[e.dst], e.dst));
+                    }
+                }
+            }
+
+            // has no available capacity
+            if (d[sink] == INF)
+                break;
+
+            for (size_t v=0; v<V; ++v)
+                pot[v] += d[v];
+
+            Weight f=bound-flow;
+            for (Arc<Weight> *e=prev[sink]; e!=NULL; e=prev[e->src])
+                // critical capacity
+                if (f > e->capacity)
+                    f = e->capacity;
+
+            flow += f;
+            mincost += f * pot[sink];
+            for (Arc<Weight> *e=prev[sink]; e!=NULL; e=prev[e->src]) {
+                e->flow += f;
+                reverse(*e).capacity += f;
+            }
+        }
+
+        sent_flow = true;
+        return make_pair(flow, mincost);
     }
 };
