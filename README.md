@@ -11,6 +11,7 @@
 
 [Segment tree](https://github.com/rsk0315/Library/blob/master/DataStructure/SegmentTree.cpp)
 - initialize with binary function `F` which is associative e.g. `max`, `add`(`operator +`)
+  * if the complexity of F is more than O(1), the complexity of each operation will be O(log(N)F(x, y))
 - `update(node, value)`: replace the value of `node` with `value`
 - `query(interval)`: reports the value of `F(nodes in interval...)`
 
@@ -28,6 +29,7 @@
 | :-------------- | :-------- | :-------- |
 | Starry-sky tree | O(log(N)) | O(1)      |
 | Fenwick tree    | O(log(N)) | O(log(N)) |
+| Segment tree    | O(log(N)) | O(log(N)) |
 
 | Structure name  | unite     | connected | rank      |
 | :-------------- | :-------- | :-------- | :-------- |
