@@ -29,6 +29,7 @@ using Node=vector<Arc<Weight>>;
 template <class Weight, Weight INF>
 struct FlowNetwork: public vector<Node<Weight>> {
     bool sent_flow;
+    Weight total_flow, total_cost;
     Weight inf;
     FlowNetwork(): sent_flow(false), inf(INF) {}
     FlowNetwork(size_t V): vector<Node<Weight>>(V), sent_flow(false), inf(INF)
@@ -72,8 +73,7 @@ struct FlowNetwork: public vector<Node<Weight>> {
         size_t V=this->size();
         vector<Weight> pot(V);
 
-        Weight flow=0, mincost=0;
-        while (bound > flow) {
+        while (bound > total_flow) {
             // shortest path from source to sink with available capacity
             vector<Weight> d(V, INF); d[source]=0;
             vector<Arc<Weight> *> prev(V, NULL);
@@ -102,21 +102,21 @@ struct FlowNetwork: public vector<Node<Weight>> {
             for (size_t v=0; v<V; ++v)
                 pot[v] += d[v];
 
-            Weight f=bound-flow;
+            Weight f=bound-total_flow;
             for (Arc<Weight> *e=prev[sink]; e!=NULL; e=prev[e->src])
                 // critical capacity
                 if (f > e->capacity)
                     f = e->capacity;
 
-            flow += f;
-            mincost += f * pot[sink];
+            totalflow += f;
+            total_cost += f * pot[sink];
             for (Arc<Weight> *e=prev[sink]; e!=NULL; e=prev[e->src]) {
-                e->flow += f;
+                e->total_flow += f;
                 reverse(*e).capacity += f;
             }
         }
 
         sent_flow = true;
-        return make_pair(flow, mincost);
+        return make_pair(total_flow, total_cost);
     }
 };
