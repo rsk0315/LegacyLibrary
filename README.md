@@ -9,6 +9,11 @@
 - `update(interval, value)`: adds `value` to each of the elements in `interval`
 - `query(interval)`: reports the sum of `range`
 
+[Segment tree](https://github.com/rsk0315/Library/blob/master/DataStructure/SegmentTree.cpp)
+- initialize with binary function `F` which is associative e.g. `max`, `add`(`operator +`)
+- `update(node, value)`: replace the value of `node` with `value`
+- `query(interval)`: reports the value of `F(nodes in interval...)`
+
 [Union-find tree](https://github.com/rsk0315/Library/blob/master/DataStructure/UnionFindTree.cpp)
 - `unite(node-pair)`: unites `node-pair`
 - `connected(node-pair)`: reports whether a path exists between `node-pair` 
