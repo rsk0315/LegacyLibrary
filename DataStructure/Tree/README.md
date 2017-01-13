@@ -16,24 +16,32 @@
 - `query(interval)`: reports the value of `F(nodes in interval...)`
 
 [Union-find tree](https://github.com/rsk0315/Library/blob/master/DataStructure/Tree/UnionFindTree.cpp)
-* Update
+* Update operation
   - `unite(node-pair)`: unites `node-pair`
 * Queries
   - `connected(node-pair)`: reports whether a path exists between `node-pair` 
   - `rank(node)`: reports the size of the connected components which contains `node`
 
 [Crit-bit tree](https://github.com/rsk0315/Library/blob/master/DataStructure/Tree/CritBitTree.cpp)
-* Updates
+* Update operations
   - `insert(key, object)`: inserts `object` with `key` mapped to
   - `remove(key)`: removes `key` (with mapped object)
 * Queries
   - `contains(key)`: reports whether the tree contains `key`
   - `all-prefixed(handler, prefix)`: handles all items whose key has given `prefix`
 
+[Link-cut tree](https://github.com/rsk0315/Library/blob/master/DataStructure/Tree/LinkCutTree.cpp)
+* Update operations
+  - `link(node1, node2)`: links `node1` to `node2`
+  - `cut(node)`: cuts `node` from its parent
+* Queries
+  - `lca(node-pair)`: reports the lowest common ancestor of `node-pair`
+  - `connected(node-pair)`: reports whether `node-pair` is connected
+
 ## Complexity
 
 - α(N) is the inverse of the function f(N)=A(N, N), where A is Ackermann function
-- \|S\| means the length of string S
+- \|S\| is the length of string S
 - *italic* means the amortized time
 
 | Structure name  | update(s) | query(s)  |
@@ -43,3 +51,4 @@
 | Segment tree    | O(log(N)) | O(log(N)) |
 | Union-find tree | *O(α(N))* | *O(α(N))* |
 | Crit-bit tree   | O(\|S\|)  | O(\|S\|)  |
+| Link-cut tree   | O(log(N)) | O(log(N)) |
