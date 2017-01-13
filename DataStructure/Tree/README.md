@@ -9,8 +9,9 @@
 - `query(interval)`: reports the sum of `range`
 
 [Segment tree](https://github.com/rsk0315/Library/blob/master/DataStructure/Tree/SegmentTree.cpp)
-- initialize with binary function `F` which is associative e.g. `max`, `add`(`operator +`)
-  * if the complexity of F is more than O(1), the complexity of each operation will be O(log(N)F(x, y))
+- initialize with aggregative function `F`: e.g. `max`, `add`(`operator +`)
+  * F should be binary/associative function
+  * if F not in O(1), the complexity of each operation will be O(log(N) F)
 - `update(node, value)`: replace the value of `node` with `value`
 - `query(interval)`: reports the value of `F(nodes in interval...)`
 
@@ -21,7 +22,7 @@
 
 ## Complexity
 
-- a(N) is the inverse of the function f(N)=A(N, N), where A is Ackermann function
+- α(N) is the inverse of the function f(N)=A(N, N), where A is Ackermann function
 - *italic* means the amortized time
 
 | Structure name  | update    | query     |
@@ -32,4 +33,4 @@
 
 | Structure name  | unite     | connected | rank      |
 | :-------------- | :-------- | :-------- | :-------- |
-| Union-find tree | *O(a(N))* | *O(a(N))* | *O(a(N))* |
+| Union-find tree | *O(α(N))* | *O(α(N))* | *O(α(N))* |
