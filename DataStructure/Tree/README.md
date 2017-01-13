@@ -20,9 +20,16 @@
 - `connected(node-pair)`: reports whether a path exists between `node-pair` 
 - `rank(node)`: reports the size of the connected components which contains `node`
 
+[Crit-bit tree](https://github.com/rsk0315/Library/blob/master/DataStructure/Tree/CritBitTree.cpp)
+- `contains(key)`: reports whether the tree contains `key`
+- `insert(key, object)`: inserts `object` with `key` mapped to
+- `remove(key)`: removes `key` (with mapped object)
+- `all-prefixed(handler, prefix)`: handles all items whose key has given `prefix`
+
 ## Complexity
 
 - α(N) is the inverse of the function f(N)=A(N, N), where A is Ackermann function
+- \|S\| means the length of string S
 - *italic* means the amortized time
 
 | Structure name  | update    | query     |
@@ -34,3 +41,7 @@
 | Structure name  | unite     | connected | rank      |
 | :-------------- | :-------- | :-------- | :-------- |
 | Union-find tree | *O(α(N))* | *O(α(N))* | *O(α(N))* |
+
+| Structure name | contains | insert | remove | all-prefixed |
+| :------------- | :------- | :----- | :----- | :----------- |
+| Crit-bit tree  | O(\|S\|) | O(\|S\|) | O(\|S\|) | O(\|S\|)       |
