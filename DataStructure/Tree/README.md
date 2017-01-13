@@ -16,15 +16,19 @@
 - `query(interval)`: reports the value of `F(nodes in interval...)`
 
 [Union-find tree](https://github.com/rsk0315/Library/blob/master/DataStructure/Tree/UnionFindTree.cpp)
-- `unite(node-pair)`: unites `node-pair`
-- `connected(node-pair)`: reports whether a path exists between `node-pair` 
-- `rank(node)`: reports the size of the connected components which contains `node`
+* Update
+  - `unite(node-pair)`: unites `node-pair`
+* Queries
+  - `connected(node-pair)`: reports whether a path exists between `node-pair` 
+  - `rank(node)`: reports the size of the connected components which contains `node`
 
 [Crit-bit tree](https://github.com/rsk0315/Library/blob/master/DataStructure/Tree/CritBitTree.cpp)
-- `contains(key)`: reports whether the tree contains `key`
-- `insert(key, object)`: inserts `object` with `key` mapped to
-- `remove(key)`: removes `key` (with mapped object)
-- `all-prefixed(handler, prefix)`: handles all items whose key has given `prefix`
+* Updates
+  - `insert(key, object)`: inserts `object` with `key` mapped to
+  - `remove(key)`: removes `key` (with mapped object)
+* Queries
+  - `contains(key)`: reports whether the tree contains `key`
+  - `all-prefixed(handler, prefix)`: handles all items whose key has given `prefix`
 
 ## Complexity
 
@@ -32,16 +36,10 @@
 - \|S\| means the length of string S
 - *italic* means the amortized time
 
-| Structure name  | update    | query     |
+| Structure name  | update(s) | query(s)  |
 | :-------------- | :-------- | :-------- |
 | Starry-sky tree | O(log(N)) | O(1)      |
 | Fenwick tree    | O(log(N)) | O(log(N)) |
 | Segment tree    | O(log(N)) | O(log(N)) |
-
-| Structure name  | unite     | connected | rank      |
-| :-------------- | :-------- | :-------- | :-------- |
-| Union-find tree | *O(α(N))* | *O(α(N))* | *O(α(N))* |
-
-| Structure name | contains | insert | remove | all-prefixed |
-| :------------- | :------- | :----- | :----- | :----------- |
-| Crit-bit tree  | O(\|S\|) | O(\|S\|) | O(\|S\|) | O(\|S\|)       |
+| Union-find tree | *O(α(N))* | *O(α(N))* |
+| Crit-bit tree   | O(\|S\|)  | O(\|S\|)  |
