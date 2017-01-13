@@ -194,3 +194,41 @@ public:
         return *find(key, T()).first;
     }
 };
+
+template <class Key, class T>
+class CritBitTree {
+    using mask_t=typename Key::value_type;
+    struct Node {
+        bool is_internal;
+        Node(bool is_internal=false);
+    };
+    struct InNode: public Node {
+        Node *child[2];
+        size_t byte;
+        mask_t mask;
+        InNode();
+    };
+    struct ExNode: private Node {
+        Key key;
+        T value;
+        ExNode(const Key &key="", const T &value=T());
+    };
+    Node *root;
+    ExNode *seek(const string &key);
+    bool differs(
+        const string &key, ExNode *pos, size_t &byte, mask_t &mask
+    );
+    template <class Functor>
+    int traverse(Node *top, Functor handle);
+    pair<T *, bool> find(const Key &key, T value);
+public:
+    using item=ExNode;
+    CritBitTree();
+    bool contains(const Key &key);
+    bool insert(const Key &key, const T &value=T());
+    bool remove(const Key &key);
+    template <class Functor>
+    int all_prefixed(Functor handle, const Key &prefix="");
+
+    T &operator [](const Key &key);
+};
