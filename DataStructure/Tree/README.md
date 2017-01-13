@@ -47,7 +47,7 @@
 | :-------------- | :-------- | :-------- |
 | Crit-bit tree   | O(\|S\|)  | O(\|S\|)  |
 | Fenwick tree    | O(log(N)) | O(log(N)) |
-| Link-cut tree   | O(log(N)) | O(log(N)) |
+| Link-cut tree   | O(log(N)) <sub>amortized</sub> | O(log(N)) <sub>amortized</sub> |
 | Segment tree    | O(log(N)) | O(log(N)) |
 | Starry-sky tree | O(log(N)) | O(1)      |
 | Union-find tree | O(α(N)) <sub>amortized</sub> | O(α(N)) <sub>amortized</sub> |
