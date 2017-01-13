@@ -50,4 +50,4 @@
 | Link-cut tree   | O(log(N)) | O(log(N)) |
 | Segment tree    | O(log(N)) | O(log(N)) |
 | Starry-sky tree | O(log(N)) | O(1)      |
-| Union-find tree | O(α(N)) amortized | O(α(N)) amortized |
+| Union-find tree | O(α(N)) <sub>amortized</sub> | O(α(N)) <sub>amortized</sub> |
