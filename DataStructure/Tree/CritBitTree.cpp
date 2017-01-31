@@ -1,234 +1,336 @@
-template <class Key, class T>
+#include <cstdio>
+#include <algorithm>
+#include <vector>
+#include <utility>
+#include <string>
+
+using namespace std;
+
+template <class Key, class T=nullptr_t>
 class CritBitTree {
-    // acts as a set if T is nullptr_t, otherwise a map
-    using mask_t=typename Key::value_type;
+    using mask_type=typename Key::value_type;
+    using value_type=pair<const Key, T>;
     struct Node {
-        bool is_internal;
-        Node(bool is_internal=false): is_internal(is_internal) {}
-    };
-    struct InNode: public Node {
+        // if one of the child is NULL, the sibling should be also NULL
+        size_t nth_byte;
+        mask_type mask;
+        value_type *value;
         Node *child[2];
-        size_t byte;
-        mask_t mask;
-        InNode(): Node(true) {}
-    };
-    struct ExNode: private Node {
-        Key key;
-        T value;
-        ExNode(const Key &key="", const T &value=T()):
-            Node(), key(key), value(value)
-        {}
+        Node(): child{NULL, NULL} {}
     };
     Node *root;
-    ExNode *seek(const string &key) {
-        // Returns the pointer to the best match item with given key
+    value_type *trace(const Key &key) {
         Node *pos=root;
-        while (pos->is_internal) {
-            InNode *p=(InNode *)pos;
-            mask_t c=0;
-            if (p->byte < key.length())
-                c = key[p->byte];
+        while (pos->child[0]) {
+            mask_type byte=0;
+            if (pos->nth_byte < key.length())
+                byte = key[pos->nth_byte];
 
-            bool bit_set=p->mask&c;
-            pos = p->child[bit_set];
+            size_t dir=(pos->mask&byte? 1:0);
+            pos = pos->child[dir];
         }
 
-        return (ExNode *)pos;
+        return pos->value;
+    }
+    value_type *trace(const Key &key, Node **subtop, size_t branchdir) {
+        Node *pos=root;
+        while (pos->child[0]) {
+            mask_type byte=0;
+            if (pos->nth_byte < key.length())
+                byte = key[pos->nth_byte];
+
+            size_t dir=(pos->mask&byte? 1:0);
+            if (dir == branchdir) *subtop = pos->child[1^dir];
+            pos = pos->child[dir];
+        }
+
+        return pos->value;
     }
     bool differs(
-        const string &key, ExNode *pos, size_t &byte, mask_t &mask
+        const Key &key1, const Key &key2, size_t &nth_byte, mask_type &mask
     ) {
-        // Returns whether two keys differ and prepares the mask
-        for (byte=0; byte<key.length(); ++byte)
-            if ((mask = (pos->key[byte] ^ key[byte])))
+        for (nth_byte=0; nth_byte<key1.length(); ++nth_byte)
+            if ((mask = (key1[nth_byte] ^ key2[nth_byte])))
                 return true;
 
-        return (mask = pos->key[byte]);
+        return (mask = key2[nth_byte]);
+    }
+    pair<T *, bool> find(const Key &key, T value) {
+        if (!root) {
+            root = new Node;
+            root->value = new pair<const Key, T>(key, value);
+
+            return make_pair(&(root->value->second), true);
+        }
+
+        value_type *bestmatch=trace(key);
+
+        size_t nth_byte;
+        mask_type mask;
+        if (!differs(key, bestmatch->first, nth_byte, mask))
+            return make_pair(bestmatch->second, false);
+
+        // make the new mask
+        for (mask_type tmp=mask; (tmp&=tmp-1); mask=tmp);
+
+        size_t dir=(mask&(bestmatch->first[nth_byte])? 1:0);
+
+        Node *newnode=new Node;
+        newnode->nth_byte = nth_byte;
+        newnode->mask = mask;
+        newnode->child[1^dir] = new Node;
+        newnode->child[1^dir]->value = new value_type(key, value);
+
+        Node **child=&root;
+        while (true) {
+            Node *pos=*child;
+            if (!pos->child[0]) break;
+
+            if (pos->nth_byte > nth_byte) break;
+            if (pos->nth_byte == nth_byte && pos->mask < mask) break;
+
+            mask_type byte=0;
+            if (pos->nth_byte < key.length())
+                byte = key[pos->nth_byte];
+
+            size_t dir=(pos->mask&byte? 1:0);
+            child = &(pos->child[dir]);
+        }
+        (newnode->child[dir]) = *child;
+        *child = newnode;
+
+        return make_pair(&(newnode->child[1^dir]->value->second), true);
     }
     template <class Functor>
-    int traverse(Node *top, Functor handle) {
-        /* Traversal: handles each of nodes in the subtree */
-        // Returns 0 if traversal succeeds; other if fails
-        // Note: traversal is terminated
-        //       when handler returns non-zero value
-        if (!top->is_internal)
-            return handle(*(ExNode *)top);
+    int traverse(Node *top, Functor callback) {
+        if (!top->child[0])
+            return callback(*(top->value));
 
         int retval=0;
-        for (Node *q: ((InNode *)top)->child)
-            if ((retval = traverse(q, handle)))
+        for (Node *subtree: top->child)
+            if ((retval = traverse(subtree, callback)))
                 break;
 
         return retval;
     }
-    pair<T *, bool> find(const Key &key, T value) {
-        // Inserts new node with default value of T if not found
-        // Returns:
-        // - reference to the value mapped to the key
-        // - whether the tree was mutated
-        if (!this->root) {
-            this->root = (Node *)(new ExNode(key, value));
-            return make_pair(&((ExNode *)(this->root))->value, true);
-        }
-
-        ExNode *pos=seek(key);
-
-        // Find the critical bit
-        size_t newbyte;
-        mask_t newmask;
-        if (!differs(key, pos, newbyte, newmask))
-            return make_pair(&pos->value, false);
-
-        for (mask_t tmp=newmask; (tmp&=tmp-1); newmask=tmp);
-
-        // Decide next child
-        mask_t c=pos->key[newbyte];
-        bool bit_set=newmask&c;
-
-        // Inserts new node
-        InNode *newnode=new InNode;
-        newnode->byte = newbyte;
-        newnode->mask = newmask;
-        newnode->child[1^bit_set] = (Node *)(new ExNode(key, value));
-
-        Node **wherep=(Node **)&(this->root);
-        while (true) {
-            if (!(*wherep)->is_internal) break;
-
-            InNode *p=(InNode *)*wherep;
-            if (p->byte > newbyte) break;
-            if (p->byte == newbyte && p->mask < newmask) break;
-
-            mask_t c=0;
-            if (p->byte < key.length())
-                c = key[p->byte];
-
-            bool bit_set=(p->mask&c);
-            wherep = &(p->child[bit_set]);
-        }
-        (newnode->child[bit_set]) = *wherep;
-        *wherep = newnode;
-        (*wherep)->is_internal = true;
-
-        return make_pair(&((ExNode *)(newnode->child[1^bit_set]))->value, true);
-    }
 public:
-    using item=ExNode;
     CritBitTree(): root(NULL) {}
     bool contains(const Key &key) {
         if (!root) return false;
 
-        ExNode *pos=seek(key);
-        return key == pos->key;
+        value_type *pos=trace(key);
+        return key == pos->first;
     }
     bool insert(const Key &key, const T &value=T()) {
-        // Returns whether the tree was mutated
+        // returns whether the tree is mutated
         return find(key, value).second;
     }
     bool remove(const Key &key) {
-        // Returns whether the tree was mutated
+        // returns whether the tree is mutated
         if (!root) return false;
 
-        Node *p=root, **wherep=&root;
-        InNode *q=NULL, **whereq=NULL;
-        bool bit_set=0;
-        while (p->is_internal) {
-            whereq = (InNode **)wherep;
-            q = (InNode *)p;
-            mask_t c=0;
-            if (q->byte < key.length())
-                c = key[q->byte];
+        Node **pos=&root, **par=NULL;
+        size_t dir;
+        while ((*pos)->child[0]) {
+            const size_t nth_byte=(*pos)->nth_byte;
 
-            bit_set = q->mask & c;
-            wherep = &(q->child[bit_set]);
-            p = *wherep;
+            mask_type byte=0;
+            if (nth_byte < key.length())
+                byte = key[nth_byte];
+
+            dir = ((*pos)->mask&byte? 1:0);
+
+            par = pos;
+            pos = &((*pos)->child[dir]);
         }
 
-        if (key != ((ExNode *)p)->key)
-            // key not found
+        if (key != (*pos)->value->first)
             return false;
 
-        delete p;
-
-        // Remove the element and/or node
-        if (!whereq) {
+        delete (*pos)->value;
+        delete *pos;
+        if (!par) {
             root = NULL;
             return true;
         }
 
-        *whereq = (InNode *)q->child[1^bit_set];
-        delete q;
+        // reduce the unneeded node, which does not diverge -- not critical bit
+        delete *par;
+        *par = (*par)->child[1^dir];
 
         return true;
     }
     template <class Functor>
-    int all_prefixed(Functor handle, const Key &prefix="") {
-        /* Suffix searching: walks all prefixed keys */
-        // Functor
-        //   type: int handle(dict<Key, T>::item);
-        //   return value: 0 if succeeds, nonzero if fails
-        if (!root)
-            return 1;
+    int fetch(Functor callback, const Key &prefix="") {
+        /* Suffix searching */
+        // fetches every element that has given prefix
+        // fetches all elements if given prefix is empty
+        // returns the status of the last callback executed
+        // Note: fetching is aborted if callback returns other than 0
 
-        // Walk tree, maintaining top pointer
-        Node *p=root, *top=p;
-        while (p->is_internal) {
-            InNode *q=(InNode *)p;
-            mask_t c=0;
-            if (q->byte < prefix.length())
-                c = prefix[q->byte];
+        if (!root) return -1;
 
-            bool bit_set=q->mask&c;
-            p = q->child[bit_set];
-            if (q->byte < prefix.length())
-                top = p;
+        Node *pos=root, *subtop=pos;
+        while (pos->child[0]) {
+            mask_type byte=0;
+            if (pos->nth_byte < prefix.length())
+                byte = prefix[pos->nth_byte];
+
+            size_t dir=(pos->mask&byte? 1:0);
+            pos = pos->child[dir];
+            if (pos->nth_byte < prefix.length())
+                subtop = pos;
         }
 
         for (size_t i=0; i<prefix.length(); ++i)
-            if (((ExNode *)p)->key[i] != prefix[i])
-                return 1;
+            if (pos->value->first[i] != prefix[i])
+                return -1;
 
-        return traverse(top, handle);
+        return traverse(subtop, callback);
+    }
+    value_type *next(const Key &key) {
+        if (!root) return NULL;
+        if (!root->child[0])
+            return (root->value->first > key)? root->value : NULL;
+
+        Node *subtop=NULL;
+        value_type *bestmatch=trace(key, &subtop, 0);
+
+        size_t nth_byte;
+        mask_type mask;
+        if (differs(key, bestmatch->first, nth_byte, mask)) {
+            for (mask_type tmp=mask; (tmp&=tmp-1); mask=tmp);
+
+            Node *pos=root;
+            subtop = NULL;
+            while (true) {
+                if (!pos->child[0]) break;
+                if (pos->nth_byte > nth_byte) break;
+                if (pos->nth_byte == nth_byte && pos->mask < mask) break;
+
+                mask_type byte=0;
+                if (pos->nth_byte < key.length())
+                    byte = key[pos->nth_byte];
+
+                size_t dir=(pos->mask&byte? 1:0);
+                if (dir == 0) subtop = pos->child[1];
+                pos = pos->child[dir];
+            }
+
+            if (mask & bestmatch->first[nth_byte]) subtop = pos;
+        }
+
+        if (!subtop) return NULL;
+        Node *nextleaf=subtop;
+        while (nextleaf->child[0])
+            nextleaf = nextleaf->child[0];
+
+        return nextleaf->value;
+    }
+    value_type *prev(const Key &key) {
+        if (!root) return NULL;
+        if (!root->child[0])
+            return (root->value->first < key)? root->value : NULL;
+
+        Node *subtop=NULL;
+        value_type *bestmatch=trace(key, &subtop, 1);
+
+        size_t nth_byte;
+        mask_type mask;
+        if (differs(key, bestmatch->first, nth_byte, mask)) {
+            for (mask_type tmp=mask; (tmp&=tmp-1); mask=tmp);
+
+            Node *pos=root;
+            subtop = NULL;
+            while (true) {
+                if (!pos->child[0]) break;
+                if (pos->nth_byte > nth_byte) break;
+                if (pos->nth_byte == nth_byte && pos->mask < mask) break;
+
+                mask_type byte=0;
+                if (pos->nth_byte < key.length())
+                    byte = key[pos->nth_byte];
+
+                size_t dir=(pos->mask&byte? 1:0);
+                if (dir == 1) subtop = pos->child[1];
+                pos = pos->child[dir];
+            }
+
+            if (!(mask & bestmatch->first[nth_byte])) subtop = pos;
+        }
+
+        if (!subtop) return NULL;
+        Node *prevleaf=subtop;
+        while (prevleaf->child[1])
+            prevleaf = prevleaf->child[1];
+
+        return prevleaf->value;
     }
     T &operator [](const Key &key) {
         return *find(key, T()).first;
     }
 };
 
-template <class Key, class T>
-class CritBitTree {
-    using mask_t=typename Key::value_type;
-    struct Node {
-        bool is_internal;
-        Node(bool is_internal=false);
-    };
-    struct InNode: public Node {
-        Node *child[2];
-        size_t byte;
-        mask_t mask;
-        InNode();
-    };
-    struct ExNode: private Node {
-        Key key;
-        T value;
-        ExNode(const Key &key="", const T &value=T());
-    };
-    Node *root;
-    ExNode *seek(const string &key);
-    bool differs(
-        const string &key, ExNode *pos, size_t &byte, mask_t &mask
-    );
-    template <class Functor>
-    int traverse(Node *top, Functor handle);
-    pair<T *, bool> find(const Key &key, T value);
-public:
-    using item=ExNode;
-    CritBitTree();
-    bool contains(const Key &key);
-    bool insert(const Key &key, const T &value=T());
-    bool remove(const Key &key);
-    template <class Functor>
-    int all_prefixed(Functor handle, const Key &prefix="");
+int main() {
+    CritBitTree<string> d;
 
-    T &operator [](const Key &key);
-};
+    while (true) {
+        char op, buf[64];
+        scanf("%c %s\n", &op, buf);
+        string key(buf);
+
+        switch (op) {
+        case '$':
+            return 0;
+        case '?':
+            // membership-testing
+            printf("%s: %s\n", key.c_str(), d.contains(key)? "Yes":"No");
+            break;
+        case '+':
+            // insertion
+            d.insert(key);
+            break;
+        case '-':
+            // removal
+            d.remove(key);
+            break;
+        case '*':
+            // traversal in the subset with a given prefix
+            if (key == "*")
+                key = "";
+
+            printf("%s*:\n", key.c_str());
+            {
+                // hack: cross initialization
+                int order=0;
+                auto output=[&order](const auto &item)->int {
+                    printf("  %s\n", item.first.c_str());
+                    ++order;
+                    return 0;
+                };
+                d.fetch(output, key);
+
+                if (!order) printf("  --\n");
+            }
+
+            break;
+        case '>':
+            // find the smallest string in the tree larger than given key
+            {
+                pair<const string, nullptr_t> *next=d.next(key);
+                printf("%s > %s\n", next? next->first.c_str():"(null)", key.c_str());
+            }
+            break;
+        case '<':
+            // find the largest string in the tree smaller than given key
+            {
+                pair<const string, nullptr_t> *next=d.prev(key);
+                printf("%s < %s\n", next? next->first.c_str():"(null)", key.c_str());
+            }
+            break;
+        default:
+            printf("Unknown operation: `%c'\n", op);
+            return 1;
+        }
+    }
+}
