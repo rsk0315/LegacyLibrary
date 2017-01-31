@@ -1,11 +1,3 @@
-#include <cstdio>
-#include <algorithm>
-#include <vector>
-#include <utility>
-#include <string>
-
-using namespace std;
-
 template <class Key, class T=nullptr_t>
 class CritBitTree {
     using mask_type=typename Key::value_type;
@@ -113,6 +105,42 @@ class CritBitTree {
 
         return retval;
     }
+    value_type *neighbour(const Key &key, size_t branchdir) {
+        Node *subtop=NULL;
+        value_type *bestmatch=trace(key, &subtop, branchdir);
+
+        size_t nth_byte;
+        mask_type mask;
+        if (differs(key, bestmatch->first, nth_byte, mask)) {
+            for (mask_type tmp=mask; (tmp&=tmp-1); mask=tmp);
+
+            Node *pos=root;
+            subtop = NULL;
+            while (true) {
+                if (!pos->child[0]) break;
+                if (pos->nth_byte > nth_byte) break;
+                if (pos->nth_byte == nth_byte && pos->mask < mask) break;
+
+                mask_type byte=0;
+                if (pos->nth_byte < key.length())
+                    byte = key[pos->nth_byte];
+
+                size_t dir=(pos->mask&byte? 1:0);
+                if (dir == branchdir) subtop = pos->child[branchdir];
+                pos = pos->child[dir];
+            }
+
+            size_t dir=(mask&bestmatch->first[nth_byte]? 1:0);
+            if (dir != branchdir) subtop = pos;
+        }
+
+        if (!subtop) return NULL;
+        Node *neighborleaf=subtop;
+        while (neighborleaf->child[branchdir])
+            neighborleaf = neighborleaf->child[branchdir];
+
+        return neighborleaf->value;
+    }
 public:
     CritBitTree(): root(NULL) {}
     bool contains(const Key &key) {
@@ -193,144 +221,16 @@ public:
         if (!root->child[0])
             return (root->value->first > key)? root->value : NULL;
 
-        Node *subtop=NULL;
-        value_type *bestmatch=trace(key, &subtop, 0);
-
-        size_t nth_byte;
-        mask_type mask;
-        if (differs(key, bestmatch->first, nth_byte, mask)) {
-            for (mask_type tmp=mask; (tmp&=tmp-1); mask=tmp);
-
-            Node *pos=root;
-            subtop = NULL;
-            while (true) {
-                if (!pos->child[0]) break;
-                if (pos->nth_byte > nth_byte) break;
-                if (pos->nth_byte == nth_byte && pos->mask < mask) break;
-
-                mask_type byte=0;
-                if (pos->nth_byte < key.length())
-                    byte = key[pos->nth_byte];
-
-                size_t dir=(pos->mask&byte? 1:0);
-                if (dir == 0) subtop = pos->child[1];
-                pos = pos->child[dir];
-            }
-
-            if (mask & bestmatch->first[nth_byte]) subtop = pos;
-        }
-
-        if (!subtop) return NULL;
-        Node *nextleaf=subtop;
-        while (nextleaf->child[0])
-            nextleaf = nextleaf->child[0];
-
-        return nextleaf->value;
+        return neighbour(key, 0);
     }
     value_type *prev(const Key &key) {
         if (!root) return NULL;
         if (!root->child[0])
             return (root->value->first < key)? root->value : NULL;
 
-        Node *subtop=NULL;
-        value_type *bestmatch=trace(key, &subtop, 1);
-
-        size_t nth_byte;
-        mask_type mask;
-        if (differs(key, bestmatch->first, nth_byte, mask)) {
-            for (mask_type tmp=mask; (tmp&=tmp-1); mask=tmp);
-
-            Node *pos=root;
-            subtop = NULL;
-            while (true) {
-                if (!pos->child[0]) break;
-                if (pos->nth_byte > nth_byte) break;
-                if (pos->nth_byte == nth_byte && pos->mask < mask) break;
-
-                mask_type byte=0;
-                if (pos->nth_byte < key.length())
-                    byte = key[pos->nth_byte];
-
-                size_t dir=(pos->mask&byte? 1:0);
-                if (dir == 1) subtop = pos->child[1];
-                pos = pos->child[dir];
-            }
-
-            if (!(mask & bestmatch->first[nth_byte])) subtop = pos;
-        }
-
-        if (!subtop) return NULL;
-        Node *prevleaf=subtop;
-        while (prevleaf->child[1])
-            prevleaf = prevleaf->child[1];
-
-        return prevleaf->value;
+        return neighbour(key, 1);
     }
     T &operator [](const Key &key) {
         return *find(key, T()).first;
     }
 };
-
-int main() {
-    CritBitTree<string> d;
-
-    while (true) {
-        char op, buf[64];
-        scanf("%c %s\n", &op, buf);
-        string key(buf);
-
-        switch (op) {
-        case '$':
-            return 0;
-        case '?':
-            // membership-testing
-            printf("%s: %s\n", key.c_str(), d.contains(key)? "Yes":"No");
-            break;
-        case '+':
-            // insertion
-            d.insert(key);
-            break;
-        case '-':
-            // removal
-            d.remove(key);
-            break;
-        case '*':
-            // traversal in the subset with a given prefix
-            if (key == "*")
-                key = "";
-
-            printf("%s*:\n", key.c_str());
-            {
-                // hack: cross initialization
-                int order=0;
-                auto output=[&order](const auto &item)->int {
-                    printf("  %s\n", item.first.c_str());
-                    ++order;
-                    return 0;
-                };
-                d.fetch(output, key);
-
-                if (!order) printf("  --\n");
-            }
-
-            break;
-        case '>':
-            // find the smallest string in the tree larger than given key
-            {
-                pair<const string, nullptr_t> *next=d.next(key);
-                printf("%s > %s\n", next? next->first.c_str():"(null)", key.c_str());
-            }
-            break;
-        case '<':
-            // find the largest string in the tree smaller than given key
-            {
-                pair<const string, nullptr_t> *next=d.prev(key);
-                printf("%s < %s\n", next? next->first.c_str():"(null)", key.c_str());
-            }
-            break;
-        default:
-            printf("Unknown operation: `%c'\n", op);
-            return 1;
-        }
-    }
-}
