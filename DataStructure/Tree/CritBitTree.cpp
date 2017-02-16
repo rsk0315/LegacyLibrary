@@ -60,7 +60,7 @@ class CritBitTree {
         size_t nth_byte;
         mask_type mask;
         if (!differs(key, bestmatch->first, nth_byte, mask))
-            return make_pair(bestmatch->second, false);
+            return make_pair(&bestmatch->second, false);
 
         // make the new mask
         for (mask_type tmp=mask; (tmp&=tmp-1); mask=tmp);
