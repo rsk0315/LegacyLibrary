@@ -5,7 +5,7 @@ class FastIO {
     static void b(){e[fread(e,1,E,stdin)]=0,t=e;}
     static void b(size_t h){e[h+fread(e+h,1,E-h,stdin)]=0;}
 public:
-    static void scan(double&h){char*r;h=strtod(t,&r);if(r<a&&r-t){t=r;return;}ptrdiff_t d=a-t;memcpy(e,t,d),b(d),h=strtod(e,&t);}
+    static void scan(double&h){if(!*t)b();char*r;h=strtod(t,&r);if(r<a&&r-t){t=r;return;}ptrdiff_t d=a-t;memcpy(e,t,d),b(d),h=strtod(e,&t);}
     static void scan(char&h){h=*t++;if(h)return;b(),h=*t++;}
     static void scan(char*h){char*l=t,*c=l;bool u=0;for(;;++l){char r=*l;if(!r){ptrdiff_t m=l-c;memcpy(h,c,m),h+=m,b(),l=c=e,r=*e;}if(r-' '&&r-'\n'){if(!u)u=1,c=l;}else if(u){memcpy(h,c,l-c),h[l-c]=0,t=++l;return;}}}
     template<class T>
