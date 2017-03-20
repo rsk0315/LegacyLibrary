@@ -7,9 +7,9 @@
 
 class FastIO {
     // output buffer must be larger than each output
-    static constexpr size_t BUF_SIZE=(1<<17);
+    static const size_t BUF_SIZE=(1<<17);
     static constexpr char FLT_FORMAT[]="%.16f";
-    static constexpr size_t INT_LEN=20, FLT_LEN=330;
+    static const size_t INT_LEN=20, FLT_LEN=330;
     static char inbuf[BUF_SIZE|1], *inptr, *endinbuf;
     static char outbuf[BUF_SIZE|1], *outptr, *endoutbuf;
     static void weak_flush() {
@@ -29,6 +29,9 @@ class FastIO {
     }
 public:
     static void scan(double &d) {
+        if (*inptr == '\0')
+            buffer();
+
         char *tmp;
         d = strtod(inptr, &tmp);
         if (tmp < endinbuf && tmp != inptr) {
@@ -86,11 +89,11 @@ public:
     }
     template <class Integral>
     static void scan(
-        Integral &n,
+        Integral &i,
         typename std::enable_if<std::is_signed<Integral>::value>::type*_=0
     ) {
         bool started=false, neg=false;
-        n = 0;
+        i = 0;
         for (;;) {
             char tmp=*inptr++;
             if (tmp == '\0') {
@@ -100,7 +103,7 @@ public:
 
             if (tmp >= '0' && tmp <= '9') {
                 started = true;
-                n = n*10 + tmp-'0';
+                i = i*10 + tmp-'0';
             } else if (started) {
                 ++tmp;
                 break;
@@ -109,15 +112,15 @@ public:
             }
         }
 
-        if (neg) n = -n;
+        if (neg) i = -i;
     }
     template <class Integral>
     static void scan(
-        Integral &n,
+        Integral &u,
         typename std::enable_if<!std::is_signed<Integral>::value>::type*_=0
     ) {
         bool started=false;
-        n = 0;
+        u = 0;
         for (;;) {
             char tmp=*inptr++;
             if (tmp == '\0') {
@@ -127,7 +130,7 @@ public:
 
             if (tmp >= '0' && tmp <= '9') {
                 started = true;
-                n = n*10 + tmp-'0';
+                u = u*10 + tmp-'0';
             } else if (started) {
                 ++tmp;
                 break;
@@ -138,6 +141,47 @@ public:
     static void scan(Arithmetic &&x, Rest&&... y) {
         scan(x);
         scan(y...);
+    }
+    static void scanln(char *s) {
+        char *pos=inptr, *src=pos;
+        bool started=false;
+        for (;; ++pos) {
+            char tmp=*pos;
+            if (tmp == '\0') {
+                // unbuffers and rebuffers if reaches EOB
+                ptrdiff_t count=pos-src;
+                memcpy(s, src, count);
+                s += count;
+
+                buffer();
+                pos = src = inbuf;
+                tmp = *inbuf;
+            }
+
+            if (tmp != '\n') {
+                // not newline
+                if (!started) {
+                    started = true;
+                    src = pos;
+                }
+            } else if (started) {
+                memcpy(s, src, pos-src);
+                s[pos-src] = '\0';
+                inptr = ++pos;
+                return;
+            }
+
+            // nops until non-delimiter char appears
+        }
+    }
+    static void eat_space() {
+        for (;; ++inptr) {
+            if (*inptr == '\0')
+                buffer();
+
+            if (*inptr != ' ' && *inptr != '\n')
+                return;
+        }
     }
     static void print(double d) {
         char minibuf[FLT_LEN];
@@ -193,26 +237,26 @@ public:
     }
     template <class Integral>
     static void print(
-        Integral n,
+        Integral i,
         typename std::enable_if<std::is_signed<Integral>::value>::type*_=0
     ) {
         if (outptr+INT_LEN >= endoutbuf)
             weak_flush();
 
-        if (n == 0) {
+        if (i == 0) {
             *outptr++ = '0';
             return;
         }
 
         char minibuf[INT_LEN], *pos=minibuf+INT_LEN, *endminibuf=pos;
-        if (n < 0) {
+        if (i < 0) {
             *outptr++ = '-';
-            n = -n;
+            i = -i;
         }
 
-        while (n) {
-            *--pos = n%10 + '0';
-            n /= 10;
+        while (i) {
+            *--pos = i%10 + '0';
+            i /= 10;
         }
 
         memcpy(outptr, pos, endminibuf-pos);
@@ -220,22 +264,22 @@ public:
     }
     template <class Integral>
     static void print(
-        Integral n,
+        Integral u,
         typename std::enable_if<!std::is_signed<Integral>::value>::type*_=0
     ) {
         if (outptr+INT_LEN >= endoutbuf)
             weak_flush();
 
-        if (n == 0) {
+        if (u == 0) {
             *outptr++ = '0';
             return;
         }
 
         char minibuf[INT_LEN], *pos=minibuf+INT_LEN, *endminibuf=pos;
 
-        while (n) {
-            *--pos = n%10 + '0';
-            n /= 10;
+        while (u) {
+            *--pos = u%10 + '0';
+            u /= 10;
         }
 
         memcpy(outptr, pos, endminibuf-pos);
@@ -280,3 +324,4 @@ char FastIO::inbuf[], *FastIO::inptr=FastIO::inbuf;
 char *FastIO::endinbuf=FastIO::inbuf+FastIO::BUF_SIZE;
 char FastIO::outbuf[], *FastIO::outptr=FastIO::outbuf;
 char *FastIO::endoutbuf=FastIO::outbuf+FastIO::BUF_SIZE;
+constexpr char FastIO::FLT_FORMAT[];
